@@ -1,0 +1,14 @@
+*.db
+*.log
+.dart_tool/
+.packages
+.pub/
+build/
+node_modules/
+.env
+*.iml
+.idea/
+.vscode/
+*.swp
+.DS_Store
+coverage/
