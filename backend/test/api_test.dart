@@ -11,17 +11,17 @@ void main() {
   late String orderId;
 
   setUpAll(() async {
-    // Wait a moment for the server to be ready
     await Future.delayed(const Duration(seconds: 1));
   });
 
   group('Auth', () {
     test('POST /api/auth/register creates a new user', () async {
+      final uniqueEmail = 'testuser_${DateTime.now().millisecondsSinceEpoch}@test.pl';
       final res = await http.post(
         Uri.parse('$baseUrl/api/auth/register'),
         headers: {'content-type': 'application/json'},
         body: jsonEncode({
-          'email': 'testuser@test.pl',
+          'email': uniqueEmail,
           'password': 'haslo1234',
           'name': 'Test User',
           'phone': '+48444444444',
@@ -39,9 +39,9 @@ void main() {
         Uri.parse('$baseUrl/api/auth/register'),
         headers: {'content-type': 'application/json'},
         body: jsonEncode({
-          'email': 'testuser@test.pl',
+          'email': 'admin@sasiedzi.pl',
           'password': 'haslo1234',
-          'name': 'Test User 2',
+          'name': 'Test Duplicate',
           'role': 'family',
         }),
       );
@@ -121,9 +121,9 @@ void main() {
   });
 
   group('Orders', () {
-    test('POST /api/orders creates an order', () async {
+    test('POST /api/orders/ creates an order', () async {
       final res = await http.post(
-        Uri.parse('$baseUrl/api/orders'),
+        Uri.parse('$baseUrl/api/orders/'),
         headers: {
           'content-type': 'application/json',
           'authorization': 'Bearer $familyToken',
@@ -144,9 +144,9 @@ void main() {
       expect(data['commission'], 4.5);
     });
 
-    test('GET /api/orders returns user orders', () async {
+    test('GET /api/orders/ returns user orders', () async {
       final res = await http.get(
-        Uri.parse('$baseUrl/api/orders'),
+        Uri.parse('$baseUrl/api/orders/'),
         headers: {'authorization': 'Bearer $familyToken'},
       );
       expect(res.statusCode, 200);
@@ -186,7 +186,7 @@ void main() {
   });
 
   group('Reviews', () {
-    test('POST /api/reviews creates a review', () async {
+    test('POST /api/reviews/ creates a review', () async {
       final meRes = await http.get(
         Uri.parse('$baseUrl/api/users/me'),
         headers: {'authorization': 'Bearer $workerToken'},
@@ -194,7 +194,7 @@ void main() {
       final workerId = jsonDecode(meRes.body)['id'] as String;
 
       final res = await http.post(
-        Uri.parse('$baseUrl/api/reviews'),
+        Uri.parse('$baseUrl/api/reviews/'),
         headers: {
           'content-type': 'application/json',
           'authorization': 'Bearer $familyToken',
