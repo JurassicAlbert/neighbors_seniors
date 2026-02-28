@@ -1,0 +1,7 @@
+name: neighbors_seniors_shared
+description: Shared models and constants for Neighbors & Seniors platform
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
