@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 
@@ -35,6 +36,58 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => const HomeScreen()),
       );
     }
+  }
+
+  void _showServerSettings() {
+    final controller = TextEditingController(text: ApiService.baseUrl);
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Adres serwera'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Podaj adres IP komputera z backendem.\n'
+              'Telefon i komputer muszą być w tej samej sieci WiFi.',
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'http://192.168.x.x:8080',
+                prefixIcon: Icon(Icons.dns),
+              ),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Anuluj'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final url = controller.text.trim();
+              if (url.isNotEmpty) {
+                final api = context.read<AuthProvider>().api;
+                await api.setBaseUrl(url);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Serwer: $url')),
+                  );
+                }
+              }
+            },
+            child: const Text('Zapisz'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -123,6 +176,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                   child: const Text('Nie masz konta? Zarejestruj się'),
+                ),
+                const SizedBox(height: 32),
+                TextButton.icon(
+                  onPressed: _showServerSettings,
+                  icon: const Icon(Icons.settings, size: 16),
+                  label: Text(
+                    'Serwer: ${ApiService.baseUrl}',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  ),
                 ),
               ],
             ),
