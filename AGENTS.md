@@ -55,3 +55,5 @@ See `README.md` for the full command table. Quick reference:
 - The mobile app defaults to `http://10.0.2.2:8080` as the API URL (Android emulator loopback). For web or Linux desktop, override `ApiService.baseUrl` to `http://localhost:8080`.
 - The admin panel's `AdminApiService.baseUrl` defaults to `http://localhost:8080` which works for web.
 - SQLite DB file (`neighbors_seniors.db`) is created in the current working directory when the backend starts. Delete it to reset.
+- v2 API routes are mounted at `/api/v2/equipment/`, `/api/v2/social/`, `/api/v2/payments/`, `/api/v2/directory/` — all require Bearer auth. v1 routes remain at `/api/` unchanged.
+- The backend seeds equipment, badges, and a service offer alongside demo users on fresh DB creation.
