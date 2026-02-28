@@ -7,6 +7,11 @@ import 'login_screen.dart';
 import 'create_order_screen.dart';
 import 'order_detail_screen.dart';
 import 'profile_screen.dart';
+import 'equipment_screen.dart';
+import 'directory_screen.dart';
+import 'friends_screen.dart';
+import 'badges_screen.dart';
+import 'notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,23 +46,31 @@ class _HomeScreenState extends State<HomeScreen> {
       _buildMainPage(user),
       if (user.role == UserRole.worker) _buildAvailableOrdersPage(),
       _buildOrdersPage(user),
+      const EquipmentScreen(),
+      const DirectoryScreen(),
       const ProfileScreen(),
     ];
 
+    final destinations = <NavigationDestination>[
+      const NavigationDestination(icon: Icon(Icons.home), label: 'Główna'),
+      if (user.role == UserRole.worker)
+        const NavigationDestination(icon: Icon(Icons.search), label: 'Dostępne'),
+      const NavigationDestination(icon: Icon(Icons.list_alt), label: 'Zlecenia'),
+      NavigationDestination(icon: const Icon(Icons.handyman), label: S.equipment),
+      NavigationDestination(icon: const Icon(Icons.storefront), label: S.directory),
+      const NavigationDestination(icon: Icon(Icons.person), label: 'Profil'),
+    ];
+
+    final safeIndex = _selectedIndex < pages.length ? _selectedIndex : 0;
+
     return Scaffold(
-      body: pages[_selectedIndex],
+      body: pages[safeIndex],
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
+        selectedIndex: safeIndex,
         onDestinationSelected: (i) => setState(() => _selectedIndex = i),
-        destinations: [
-          const NavigationDestination(icon: Icon(Icons.home), label: 'Główna'),
-          if (user.role == UserRole.worker)
-            const NavigationDestination(icon: Icon(Icons.search), label: 'Dostępne'),
-          const NavigationDestination(icon: Icon(Icons.list_alt), label: 'Zlecenia'),
-          const NavigationDestination(icon: Icon(Icons.person), label: 'Profil'),
-        ],
+        destinations: destinations,
       ),
-      floatingActionButton: (user.role == UserRole.family || user.role == UserRole.senior) && _selectedIndex <= 1
+      floatingActionButton: (user.role == UserRole.family || user.role == UserRole.senior) && safeIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () {
                 Navigator.of(context).push(
@@ -80,8 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Powiadomienia - wkrótce!')),
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                 );
               },
             ),
@@ -96,6 +109,8 @@ class _HomeScreenState extends State<HomeScreen> {
               Text('Usługi', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
               _buildServiceGrid(),
+              const SizedBox(height: 24),
+              _buildQuickAccessRow(),
               const SizedBox(height: 24),
               Text('Ostatnie zlecenia', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 12),
@@ -133,12 +148,49 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                _buildStatChip(Icons.star, Colors.amber, '${user.points} ${S.points}'),
+                const SizedBox(width: 8),
+                _buildStatChip(Icons.trending_up, Colors.blue, '${S.level} ${user.level}'),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const BadgesScreen()),
+                  ),
+                  child: _buildStatChip(
+                    Icons.emoji_events,
+                    Colors.purple,
+                    '${user.badgeIds.length} ${S.badges}',
+                  ),
+                ),
+              ],
+            ),
             if (user.role == UserRole.worker) ...[
               const SizedBox(height: 12),
               _buildVerificationBadge(user.verificationStatus),
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatChip(IconData icon, Color color, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withAlpha(20),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
+        ],
       ),
     );
   }
@@ -232,6 +284,75 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildQuickAccessRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const EquipmentScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(Icons.handyman, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 8),
+                    Text(S.equipment, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const FriendsScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(Icons.people, size: 32, color: Theme.of(context).primaryColor),
+                    const SizedBox(height: 8),
+                    Text(S.friends, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Card(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const BadgesScreen()),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Icon(Icons.emoji_events, size: 32, color: Colors.amber[700]),
+                    const SizedBox(height: 8),
+                    Text(S.badges, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
