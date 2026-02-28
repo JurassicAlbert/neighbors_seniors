@@ -42,6 +42,18 @@ class StatsService {
       ordersByType[row['type'] as String] = row['cnt'] as int;
     }
 
+    final totalEquipment =
+        database.db.select('SELECT COUNT(*) as cnt FROM equipment').first['cnt'] as int;
+    final activeReservations = database.db
+        .select("SELECT COUNT(*) as cnt FROM equipment_reservations WHERE status IN ('reserved', 'inUse')")
+        .first['cnt'] as int;
+    final openDisputes = database.db
+        .select("SELECT COUNT(*) as cnt FROM disputes WHERE status IN ('open', 'underReview')")
+        .first['cnt'] as int;
+    final totalFriendships = database.db
+        .select("SELECT COUNT(*) as cnt FROM friendships WHERE status = 'accepted'")
+        .first['cnt'] as int;
+
     return {
       'totalUsers': totalUsers,
       'totalOrders': totalOrders,
@@ -52,6 +64,10 @@ class StatsService {
       'verifiedWorkers': verifiedWorkers,
       'pendingVerifications': pendingVerifications,
       'ordersByType': ordersByType,
+      'totalEquipment': totalEquipment,
+      'activeReservations': activeReservations,
+      'openDisputes': openDisputes,
+      'totalFriendships': totalFriendships,
     };
   }
 }

@@ -6,6 +6,7 @@ class UserModel {
   final String name;
   final String phone;
   final UserRole role;
+  final List<UserCapability> capabilities;
   final String? avatarUrl;
   final String? address;
   final double? lat;
@@ -13,6 +14,9 @@ class UserModel {
   final VerificationStatus verificationStatus;
   final String? idDocumentUrl;
   final String? selfieUrl;
+  final int points;
+  final int level;
+  final List<String> badgeIds;
   final DateTime createdAt;
 
   const UserModel({
@@ -21,6 +25,7 @@ class UserModel {
     required this.name,
     required this.phone,
     required this.role,
+    this.capabilities = const [UserCapability.requester],
     this.avatarUrl,
     this.address,
     this.lat,
@@ -28,6 +33,9 @@ class UserModel {
     this.verificationStatus = VerificationStatus.unverified,
     this.idDocumentUrl,
     this.selfieUrl,
+    this.points = 0,
+    this.level = 1,
+    this.badgeIds = const [],
     required this.createdAt,
   });
 
@@ -37,6 +45,7 @@ class UserModel {
         'name': name,
         'phone': phone,
         'role': role.name,
+        'capabilities': capabilities.map((c) => c.name).toList(),
         'avatarUrl': avatarUrl,
         'address': address,
         'lat': lat,
@@ -44,6 +53,9 @@ class UserModel {
         'verificationStatus': verificationStatus.name,
         'idDocumentUrl': idDocumentUrl,
         'selfieUrl': selfieUrl,
+        'points': points,
+        'level': level,
+        'badgeIds': badgeIds,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -53,6 +65,10 @@ class UserModel {
         name: json['name'] as String,
         phone: json['phone'] as String? ?? '',
         role: UserRole.values.firstWhere((e) => e.name == json['role']),
+        capabilities: (json['capabilities'] as List<dynamic>?)
+                ?.map((c) => UserCapability.values.firstWhere((e) => e.name == c))
+                .toList() ??
+            [UserCapability.requester],
         avatarUrl: json['avatarUrl'] as String?,
         address: json['address'] as String?,
         lat: (json['lat'] as num?)?.toDouble(),
@@ -63,6 +79,12 @@ class UserModel {
             : VerificationStatus.unverified,
         idDocumentUrl: json['idDocumentUrl'] as String?,
         selfieUrl: json['selfieUrl'] as String?,
+        points: json['points'] as int? ?? 0,
+        level: json['level'] as int? ?? 1,
+        badgeIds: (json['badgeIds'] as List<dynamic>?)
+                ?.map((b) => b as String)
+                .toList() ??
+            [],
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 
@@ -73,7 +95,11 @@ class UserModel {
     String? address,
     double? lat,
     double? lng,
+    List<UserCapability>? capabilities,
     VerificationStatus? verificationStatus,
+    int? points,
+    int? level,
+    List<String>? badgeIds,
   }) =>
       UserModel(
         id: id,
@@ -81,6 +107,7 @@ class UserModel {
         name: name ?? this.name,
         phone: phone ?? this.phone,
         role: role,
+        capabilities: capabilities ?? this.capabilities,
         avatarUrl: avatarUrl ?? this.avatarUrl,
         address: address ?? this.address,
         lat: lat ?? this.lat,
@@ -88,8 +115,13 @@ class UserModel {
         verificationStatus: verificationStatus ?? this.verificationStatus,
         idDocumentUrl: idDocumentUrl,
         selfieUrl: selfieUrl,
+        points: points ?? this.points,
+        level: level ?? this.level,
+        badgeIds: badgeIds ?? this.badgeIds,
         createdAt: createdAt,
       );
+
+  bool hasCapability(UserCapability cap) => capabilities.contains(cap);
 }
 
 class OrderModel {
@@ -107,11 +139,13 @@ class OrderModel {
   final String address;
   final double? lat;
   final double? lng;
+  final AccessType? accessType;
+  final String? accessCode;
   final DateTime? scheduledAt;
+  final DateTime? checkedInAt;
+  final DateTime? checkedOutAt;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  // Populated fields
   final UserModel? requester;
   final UserModel? worker;
 
@@ -130,7 +164,11 @@ class OrderModel {
     required this.address,
     this.lat,
     this.lng,
+    this.accessType,
+    this.accessCode,
     this.scheduledAt,
+    this.checkedInAt,
+    this.checkedOutAt,
     required this.createdAt,
     required this.updatedAt,
     this.requester,
@@ -152,7 +190,11 @@ class OrderModel {
         'address': address,
         'lat': lat,
         'lng': lng,
+        'accessType': accessType?.name,
+        'accessCode': accessCode,
         'scheduledAt': scheduledAt?.toIso8601String(),
+        'checkedInAt': checkedInAt?.toIso8601String(),
+        'checkedOutAt': checkedOutAt?.toIso8601String(),
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
         if (requester != null) 'requester': requester!.toJson(),
@@ -174,8 +216,18 @@ class OrderModel {
         address: json['address'] as String,
         lat: (json['lat'] as num?)?.toDouble(),
         lng: (json['lng'] as num?)?.toDouble(),
+        accessType: json['accessType'] != null
+            ? AccessType.values.firstWhere((e) => e.name == json['accessType'])
+            : null,
+        accessCode: json['accessCode'] as String?,
         scheduledAt: json['scheduledAt'] != null
             ? DateTime.parse(json['scheduledAt'] as String)
+            : null,
+        checkedInAt: json['checkedInAt'] != null
+            ? DateTime.parse(json['checkedInAt'] as String)
+            : null,
+        checkedOutAt: json['checkedOutAt'] != null
+            ? DateTime.parse(json['checkedOutAt'] as String)
             : null,
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
@@ -195,6 +247,7 @@ class ReviewModel {
   final String revieweeId;
   final int rating;
   final String? comment;
+  final Map<String, int> categoryRatings;
   final DateTime createdAt;
   final UserModel? reviewer;
 
@@ -205,6 +258,7 @@ class ReviewModel {
     required this.revieweeId,
     required this.rating,
     this.comment,
+    this.categoryRatings = const {},
     required this.createdAt,
     this.reviewer,
   });
@@ -216,6 +270,7 @@ class ReviewModel {
         'revieweeId': revieweeId,
         'rating': rating,
         'comment': comment,
+        'categoryRatings': categoryRatings,
         'createdAt': createdAt.toIso8601String(),
         if (reviewer != null) 'reviewer': reviewer!.toJson(),
       };
@@ -227,6 +282,9 @@ class ReviewModel {
         revieweeId: json['revieweeId'] as String,
         rating: json['rating'] as int,
         comment: json['comment'] as String?,
+        categoryRatings: (json['categoryRatings'] as Map<String, dynamic>?)
+                ?.map((k, v) => MapEntry(k, v as int)) ??
+            {},
         createdAt: DateTime.parse(json['createdAt'] as String),
         reviewer: json['reviewer'] != null
             ? UserModel.fromJson(json['reviewer'] as Map<String, dynamic>)
@@ -239,8 +297,10 @@ class NotificationModel {
   final String userId;
   final String title;
   final String body;
+  final NotificationType type;
   final bool read;
   final String? orderId;
+  final String? equipmentId;
   final DateTime createdAt;
 
   const NotificationModel({
@@ -248,8 +308,10 @@ class NotificationModel {
     required this.userId,
     required this.title,
     required this.body,
+    required this.type,
     this.read = false,
     this.orderId,
+    this.equipmentId,
     required this.createdAt,
   });
 
@@ -258,8 +320,10 @@ class NotificationModel {
         'userId': userId,
         'title': title,
         'body': body,
+        'type': type.name,
         'read': read,
         'orderId': orderId,
+        'equipmentId': equipmentId,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -269,8 +333,11 @@ class NotificationModel {
         userId: json['userId'] as String,
         title: json['title'] as String,
         body: json['body'] as String,
+        type: NotificationType.values
+            .firstWhere((e) => e.name == json['type'], orElse: () => NotificationType.newMessage),
         read: json['read'] as bool? ?? false,
         orderId: json['orderId'] as String?,
+        equipmentId: json['equipmentId'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
       );
 }
@@ -302,6 +369,10 @@ class StatsModel {
   final int verifiedWorkers;
   final int pendingVerifications;
   final Map<String, int> ordersByType;
+  final int totalEquipment;
+  final int activeReservations;
+  final int openDisputes;
+  final int totalFriendships;
 
   const StatsModel({
     required this.totalUsers,
@@ -313,6 +384,10 @@ class StatsModel {
     required this.verifiedWorkers,
     required this.pendingVerifications,
     required this.ordersByType,
+    this.totalEquipment = 0,
+    this.activeReservations = 0,
+    this.openDisputes = 0,
+    this.totalFriendships = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -325,6 +400,10 @@ class StatsModel {
         'verifiedWorkers': verifiedWorkers,
         'pendingVerifications': pendingVerifications,
         'ordersByType': ordersByType,
+        'totalEquipment': totalEquipment,
+        'activeReservations': activeReservations,
+        'openDisputes': openDisputes,
+        'totalFriendships': totalFriendships,
       };
 
   factory StatsModel.fromJson(Map<String, dynamic> json) => StatsModel(
@@ -337,5 +416,9 @@ class StatsModel {
         verifiedWorkers: json['verifiedWorkers'] as int,
         pendingVerifications: json['pendingVerifications'] as int,
         ordersByType: Map<String, int>.from(json['ordersByType'] as Map),
+        totalEquipment: json['totalEquipment'] as int? ?? 0,
+        activeReservations: json['activeReservations'] as int? ?? 0,
+        openDisputes: json['openDisputes'] as int? ?? 0,
+        totalFriendships: json['totalFriendships'] as int? ?? 0,
       );
 }

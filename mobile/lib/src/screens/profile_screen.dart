@@ -2,10 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:neighbors_seniors_shared/shared.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  int _friendsCount = 0;
+  bool _loadingFriends = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriendsCount();
+  }
+
+  Future<void> _loadFriendsCount() async {
+    final api = context.read<AuthProvider>().api;
+    try {
+      final friends = await api.listFriends();
+      if (mounted) {
+        setState(() {
+          _friendsCount = friends.where((f) => f.status == FriendshipStatus.accepted).length;
+          _loadingFriends = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingFriends = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +64,44 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   Text(user.role.label, style: TextStyle(color: Colors.grey[600])),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildProfileStat(Icons.star, Colors.amber, '${user.points}', S.points),
+                      _buildProfileStat(Icons.trending_up, Colors.blue, '${user.level}', S.level),
+                      _buildProfileStat(Icons.emoji_events, Colors.purple, '${user.badgeIds.length}', S.badges),
+                      _buildProfileStat(
+                        Icons.people,
+                        Colors.teal,
+                        _loadingFriends ? '...' : '$_friendsCount',
+                        S.friends,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(S.capabilities, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 4),
+                  Text(S.manageCapabilities, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  const SizedBox(height: 8),
+                  ...UserCapability.values.map(
+                    (cap) => SwitchListTile(
+                      title: Text(cap.labelPl),
+                      value: user.capabilities.contains(cap),
+                      onChanged: (enabled) => _toggleCapability(cap, enabled),
+                      dense: true,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -96,7 +164,7 @@ class ProfileScreen extends StatelessWidget {
                     showAboutDialog(
                       context: context,
                       applicationName: 'Sąsiedzi & Seniorzy',
-                      applicationVersion: '1.0.0',
+                      applicationVersion: '2.0.0',
                       children: [
                         const Text('Platforma łącząca sąsiadów z seniorami w Polsce.'),
                       ],
@@ -127,5 +195,44 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _buildProfileStat(IconData icon, Color color, String value, String label) {
+    return Column(
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+      ],
+    );
+  }
+
+  Future<void> _toggleCapability(UserCapability cap, bool enabled) async {
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    if (user == null) return;
+
+    final newCaps = List<UserCapability>.from(user.capabilities);
+    if (enabled) {
+      if (!newCaps.contains(cap)) newCaps.add(cap);
+    } else {
+      newCaps.remove(cap);
+    }
+
+    try {
+      await auth.api.updateMe({
+        'capabilities': newCaps.map((c) => c.name).toList(),
+      });
+      final refreshed = await auth.api.getMe();
+      auth.user?.copyWith(capabilities: refreshed.capabilities);
+      await auth.tryAutoLogin();
+    } on ApiException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message)),
+        );
+      }
+    }
   }
 }
