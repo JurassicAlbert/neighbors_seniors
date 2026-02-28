@@ -1,11 +1,19 @@
 import 'dart:convert';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:neighbors_seniors_shared/shared.dart';
 
+String _defaultBaseUrl() {
+  if (kIsWeb) return 'http://localhost:8080';
+  if (Platform.isAndroid) return 'http://10.0.2.2:8080';
+  // Windows, Linux, macOS, iOS simulator — all use localhost
+  return 'http://localhost:8080';
+}
+
 class ApiService {
-  static const String _baseUrl = 'http://10.0.2.2:8080';
-  static String baseUrl = _baseUrl;
+  static String baseUrl = _defaultBaseUrl();
   String? _token;
 
   Future<void> init() async {
