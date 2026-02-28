@@ -10,11 +10,19 @@ import 'package:neighbors_seniors_backend/src/services/user_service.dart';
 import 'package:neighbors_seniors_backend/src/services/order_service.dart';
 import 'package:neighbors_seniors_backend/src/services/review_service.dart';
 import 'package:neighbors_seniors_backend/src/services/stats_service.dart';
+import 'package:neighbors_seniors_backend/src/services/equipment_service.dart';
+import 'package:neighbors_seniors_backend/src/services/social_service.dart';
+import 'package:neighbors_seniors_backend/src/services/payment_service.dart';
+import 'package:neighbors_seniors_backend/src/services/directory_service.dart';
 import 'package:neighbors_seniors_backend/src/routes/auth_routes.dart';
 import 'package:neighbors_seniors_backend/src/routes/user_routes.dart';
 import 'package:neighbors_seniors_backend/src/routes/order_routes.dart';
 import 'package:neighbors_seniors_backend/src/routes/review_routes.dart';
 import 'package:neighbors_seniors_backend/src/routes/admin_routes.dart';
+import 'package:neighbors_seniors_backend/src/routes/equipment_routes.dart';
+import 'package:neighbors_seniors_backend/src/routes/social_routes.dart';
+import 'package:neighbors_seniors_backend/src/routes/payment_routes.dart';
+import 'package:neighbors_seniors_backend/src/routes/directory_routes.dart';
 import 'package:neighbors_seniors_backend/src/middleware/auth_middleware.dart';
 
 void main(List<String> args) async {
@@ -27,6 +35,10 @@ void main(List<String> args) async {
   final orderService = OrderService(database);
   final reviewService = ReviewService(database);
   final statsService = StatsService(database);
+  final equipmentService = EquipmentService(database);
+  final socialService = SocialService(database);
+  final paymentService = PaymentService(database);
+  final directoryService = DirectoryService(database);
 
   // Seed default admin user
   authService.register(
@@ -101,19 +113,69 @@ void main(List<String> args) async {
       price: 0,
       address: 'ul. Ogrodowa 22, Warszawa',
     );
+
+    // Seed demo equipment
+    equipmentService.createEquipment(
+      ownerId: familyId,
+      title: 'Wiertarka udarowa Bosch',
+      description: 'Profesjonalna wiertarka udarowa, idealna do prac remontowych',
+      category: 'powerTools',
+      condition: 'good',
+      pricePerUnit: 25.0,
+      priceUnit: 'day',
+      depositAmount: 100.0,
+      location: 'Warszawa, Mokotów',
+      lat: 52.1935,
+      lng: 21.0340,
+    );
+    equipmentService.createEquipment(
+      ownerId: familyId,
+      title: 'Kosiarka elektryczna',
+      description: 'Kosiarka do małych i średnich trawników',
+      category: 'gardenEquipment',
+      condition: 'likeNew',
+      pricePerUnit: 40.0,
+      priceUnit: 'day',
+      depositAmount: 150.0,
+      location: 'Warszawa, Ursynów',
+      lat: 52.1548,
+      lng: 21.0448,
+    );
   }
 
   // Mark worker verification as pending
   if (demoWorker != null) {
     final workerId = (demoWorker['user'] as Map<String, dynamic>)['id'] as String;
     userService.updateUser(workerId, {'verificationStatus': 'pending'});
+
+    // Seed demo service offer for worker
+    directoryService.createOffer(
+      providerId: workerId,
+      title: 'Hydraulik - naprawy domowe',
+      description: 'Profesjonalne usługi hydrauliczne, naprawy kranów, rur i instalacji',
+      serviceType: 'plumbing',
+      priceFrom: 80.0,
+      priceTo: 300.0,
+      location: 'Warszawa',
+      lat: 52.2297,
+      lng: 21.0122,
+      radiusKm: 15.0,
+      skills: ['hydraulika', 'naprawy', 'instalacje'],
+    );
   }
+
+  // Seed badges
+  _seedBadges(database);
 
   final authRoutes = AuthRoutes(authService);
   final userRoutes = UserRoutes(userService);
   final orderRoutes = OrderRoutes(orderService);
   final reviewRoutes = ReviewRoutes(reviewService);
   final adminRoutes = AdminRoutes(userService, orderService, statsService);
+  final equipmentRoutes = EquipmentRoutes(equipmentService);
+  final socialRoutes = SocialRoutes(socialService);
+  final paymentRoutes = PaymentRoutes(paymentService);
+  final directoryRoutes = DirectoryRoutes(directoryService);
 
   final app = Router();
 
@@ -128,6 +190,12 @@ void main(List<String> args) async {
   app.mount('/api/orders/', protectedPipeline.addHandler(orderRoutes.router.call));
   app.mount('/api/reviews/', protectedPipeline.addHandler(reviewRoutes.router.call));
 
+  // v2 protected routes
+  app.mount('/api/v2/equipment/', protectedPipeline.addHandler(equipmentRoutes.router.call));
+  app.mount('/api/v2/social/', protectedPipeline.addHandler(socialRoutes.router.call));
+  app.mount('/api/v2/payments/', protectedPipeline.addHandler(paymentRoutes.router.call));
+  app.mount('/api/v2/directory/', protectedPipeline.addHandler(directoryRoutes.router.call));
+
   // Admin routes (auth + admin check)
   final adminPipeline = const Pipeline()
       .addMiddleware(authMiddleware(authService))
@@ -137,7 +205,7 @@ void main(List<String> args) async {
 
   // Health check
   app.get('/health', (Request request) {
-    return Response.ok('{"status": "ok", "version": "1.0.0"}',
+    return Response.ok('{"status": "ok", "version": "2.0.0"}',
         headers: {'content-type': 'application/json'});
   });
 
@@ -147,10 +215,30 @@ void main(List<String> args) async {
       .addHandler(app.call);
 
   final server = await shelf_io.serve(handler, InternetAddress.anyIPv4, port);
-  print('🚀 Neighbors & Seniors API running on http://localhost:${server.port}');
+  print('🚀 Neighbors & Seniors API v2 running on http://localhost:${server.port}');
   print('📋 Demo accounts:');
   print('   Admin:     admin@sasiedzi.pl / admin1234');
   print('   Family:    rodzina@test.pl / test1234');
   print('   Worker:    wykonawca@test.pl / test1234');
   print('   Senior:    senior@test.pl / test1234');
+}
+
+void _seedBadges(AppDatabase database) {
+  final existing = database.db.select('SELECT COUNT(*) as cnt FROM badges');
+  if ((existing.first['cnt'] as int) > 0) return;
+
+  final badges = [
+    ['badge-newcomer', 'Nowy sąsiad', 'Dołączył do społeczności', '🏠', 0, 'community'],
+    ['badge-helper', 'Pomocna dłoń', 'Zrealizował 5 zleceń', '🤝', 50, 'service'],
+    ['badge-trusted', 'Zaufany sąsiad', 'Uzyskał 10 pozytywnych opinii', '⭐', 100, 'trust'],
+    ['badge-volunteer', 'Wolontariusz roku', 'Wykonał 10 zadań wolontariackich', '💛', 200, 'volunteer'],
+    ['badge-sharer', 'Mistrz udostępniania', 'Udostępnił sprzęt 10 razy', '🛠️', 150, 'equipment'],
+  ];
+
+  for (final b in badges) {
+    database.db.execute(
+      'INSERT INTO badges (id, name, description, icon, required_points, category) VALUES (?, ?, ?, ?, ?, ?)',
+      b,
+    );
+  }
 }
