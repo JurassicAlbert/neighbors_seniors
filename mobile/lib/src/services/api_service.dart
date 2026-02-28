@@ -5,10 +5,12 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:neighbors_seniors_shared/shared.dart';
 
+const _envApiUrl = String.fromEnvironment('API_URL');
+
 String _defaultBaseUrl() {
+  if (_envApiUrl.isNotEmpty) return _envApiUrl;
   if (kIsWeb) return 'http://localhost:8080';
   if (Platform.isAndroid) return 'http://10.0.2.2:8080';
-  // Windows, Linux, macOS, iOS simulator — all use localhost
   return 'http://localhost:8080';
 }
 
@@ -18,7 +20,17 @@ class ApiService {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    final savedUrl = prefs.getString('api_base_url');
+    if (savedUrl != null && savedUrl.isNotEmpty) {
+      baseUrl = savedUrl;
+    }
     _token = prefs.getString('auth_token');
+  }
+
+  Future<void> setBaseUrl(String url) async {
+    baseUrl = url;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('api_base_url', url);
   }
 
   Map<String, String> get _headers => {
