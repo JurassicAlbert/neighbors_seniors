@@ -83,4 +83,35 @@ class AdminApiService {
     if (res.statusCode != 200) throw Exception('Błąd odrzucenia');
     return UserModel.fromJson(jsonDecode(res.body));
   }
+
+  Future<List<EquipmentModel>> getEquipment() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/v2/equipment/'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Error fetching equipment');
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => EquipmentModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<DisputeModel>> getDisputes() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/v2/payments/disputes/'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Error fetching disputes');
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => DisputeModel.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<DisputeModel> resolveDispute(String id, String resolution) async {
+    final res = await http.put(
+      Uri.parse('$baseUrl/api/v2/payments/disputes/$id'),
+      headers: _headers,
+      body: jsonEncode({'status': 'resolved', 'resolution': resolution}),
+    );
+    if (res.statusCode != 200) throw Exception('Error resolving dispute');
+    return DisputeModel.fromJson(jsonDecode(res.body));
+  }
+
+  Future<List<ServiceOffer>> getServiceOffers() async {
+    final res = await http.get(Uri.parse('$baseUrl/api/v2/directory/'), headers: _headers);
+    if (res.statusCode != 200) throw Exception('Error fetching offers');
+    final list = jsonDecode(res.body) as List;
+    return list.map((e) => ServiceOffer.fromJson(e as Map<String, dynamic>)).toList();
+  }
 }
