@@ -208,9 +208,9 @@ class ApiService {
   // ── v2: Equipment ──
 
   Future<List<EquipmentModel>> listEquipment({String? category}) async {
-    final uri = Uri.parse('$baseUrl/api/v2/equipment/').replace(
-      queryParameters: {if (category != null) 'category': category},
-    );
+    final uri = category != null
+        ? Uri.parse('$baseUrl/api/v2/equipment/').replace(queryParameters: {'category': category})
+        : Uri.parse('$baseUrl/api/v2/equipment/');
     final res = await http.get(uri, headers: _headers);
     if (res.statusCode != 200) throw ApiException('Nie udało się pobrać sprzętu');
     final list = jsonDecode(res.body) as List;
@@ -339,8 +339,9 @@ class ApiService {
     final params = <String, String>{};
     if (type != null) params['type'] = type;
     if (query != null) params['query'] = query;
-    final uri = Uri.parse('$baseUrl/api/v2/directory/')
-        .replace(queryParameters: params.isNotEmpty ? params : null);
+    final uri = params.isNotEmpty
+        ? Uri.parse('$baseUrl/api/v2/directory/').replace(queryParameters: params)
+        : Uri.parse('$baseUrl/api/v2/directory/');
     final res = await http.get(uri, headers: _headers);
     if (res.statusCode != 200) throw ApiException('Nie udało się wyszukać ofert');
     final list = jsonDecode(res.body) as List;

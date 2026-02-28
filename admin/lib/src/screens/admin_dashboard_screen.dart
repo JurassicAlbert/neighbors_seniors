@@ -30,20 +30,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Future<void> _loadData() async {
     setState(() => _loading = true);
+    final errors = <String>[];
     try {
       _stats = await widget.api.getStats();
+    } catch (e) {
+      errors.add('Statystyki: $e');
+    }
+    try {
       _users = await widget.api.getUsers();
+    } catch (e) {
+      errors.add('Użytkownicy: $e');
+    }
+    try {
       _orders = await widget.api.getOrders();
+    } catch (e) {
+      errors.add('Zlecenia: $e');
+    }
+    try {
       _verifications = await widget.api.getPendingVerifications();
+    } catch (e) {
+      errors.add('Weryfikacje: $e');
+    }
+    try {
       _equipment = await widget.api.getEquipment();
+    } catch (e) {
+      errors.add('Sprzęt: $e');
+    }
+    try {
       _disputes = await widget.api.getDisputes();
+    } catch (e) {
+      errors.add('Spory: $e');
+    }
+    try {
       _serviceOffers = await widget.api.getServiceOffers();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Błąd: $e')));
-      }
+      errors.add('Oferty: $e');
     }
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      if (errors.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Błędy: ${errors.join(', ')}')),
+        );
+      }
+      setState(() => _loading = false);
+    }
   }
 
   @override

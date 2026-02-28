@@ -16,6 +16,7 @@ class PaymentRoutes {
     router.get('/disputes/', _listDisputes);
     router.post('/disputes/', _createDispute);
     router.get('/disputes/<id>', _getDispute);
+    router.put('/disputes/<id>', _updateDispute);
     router.get('/<id>', _getPayment);
     router.put('/<id>/release', _releasePayment);
     router.put('/<id>/refund', _refundPayment);
@@ -158,5 +159,44 @@ class PaymentRoutes {
     }
     return Response.ok(jsonEncode(dispute),
         headers: {'content-type': 'application/json'});
+  }
+
+  Future<Response> _updateDispute(Request request, String id) async {
+    try {
+      final body = jsonDecode(await request.readAsString()) as Map<String, dynamic>;
+      final status = body['status'] as String?;
+      final resolution = body['resolution'] as String?;
+
+      if (status == 'resolved' && resolution != null) {
+        final dispute = paymentService.resolveDispute(id, resolution);
+        if (dispute == null) {
+          return Response(404,
+              body: jsonEncode({'error': 'Spór nie znaleziony'}),
+              headers: {'content-type': 'application/json'});
+        }
+        return Response.ok(jsonEncode(dispute),
+            headers: {'content-type': 'application/json'});
+      }
+
+      if (status != null) {
+        final dispute = paymentService.updateDisputeStatus(id, status,
+            adminNotes: body['adminNotes'] as String?);
+        if (dispute == null) {
+          return Response(404,
+              body: jsonEncode({'error': 'Spór nie znaleziony'}),
+              headers: {'content-type': 'application/json'});
+        }
+        return Response.ok(jsonEncode(dispute),
+            headers: {'content-type': 'application/json'});
+      }
+
+      return Response(400,
+          body: jsonEncode({'error': 'Status jest wymagany'}),
+          headers: {'content-type': 'application/json'});
+    } catch (e) {
+      return Response(400,
+          body: jsonEncode({'error': 'Nieprawidłowe dane: $e'}),
+          headers: {'content-type': 'application/json'});
+    }
   }
 }

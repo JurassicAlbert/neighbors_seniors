@@ -61,7 +61,7 @@ void main(List<String> args) async {
   final userRoutes = UserRoutes(userService);
   final orderRoutes = OrderRoutes(orderService);
   final reviewRoutes = ReviewRoutes(reviewService);
-  final adminRoutes = AdminRoutes(userService, orderService, statsService);
+  final adminRoutes = AdminRoutes(userService, orderService, statsService, equipmentService, paymentService);
   final equipmentRoutes = EquipmentRoutes(equipmentService);
   final socialRoutes = SocialRoutes(socialService);
   final paymentRoutes = PaymentRoutes(paymentService);
